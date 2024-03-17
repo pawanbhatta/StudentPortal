@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using StudentPortal.Data;
 using StudentPortal.Models;
 using StudentPortal.Models.Entities;
@@ -10,11 +11,11 @@ namespace StudentPortal.Controllers
 		private readonly ApplicationDbContext dbContext;
 
 		public StudentsController(ApplicationDbContext dbContext)
-        {
+		{
 			this.dbContext = dbContext;
 		}
 
-        [HttpGet]
+		[HttpGet]
 		public IActionResult Add()
 		{
 			return View();
@@ -33,7 +34,54 @@ namespace StudentPortal.Controllers
 			await dbContext.Students.AddAsync(student);
 			await dbContext.SaveChangesAsync();
 
-			return View();
+			return RedirectToAction("List", "Students");
 		}
+
+		[HttpGet]
+		public async Task<IActionResult> List()
+		{
+			var students = await dbContext.Students.ToListAsync();
+			return View(students);
+		}
+
+		[HttpGet]
+		public async Task<IActionResult> Edit(Guid id)
+		{
+			var student = await dbContext.Students.FindAsync(id);
+			return View(student);
+		}
+
+		[HttpPost]
+		public async Task<IActionResult> Edit(Student viewModal)
+		{
+			var student = await dbContext.Students.FindAsync(viewModal.Id);
+			if (student is not null)
+			{
+				student.Name = viewModal.Name;
+				student.Email = viewModal.Email;
+				student.Phone = viewModal.Phone;
+				student.Subscribed = viewModal.Subscribed;
+
+				await dbContext.SaveChangesAsync();
+			}
+
+			return RedirectToAction("List", "Students");
+		}
+
+		[HttpPost]
+		public async Task<IActionResult> Delete(Student viewModel)
+		{
+			var student = await dbContext.Students.AsNoTracking().FirstOrDefaultAsync(x => x.Id == viewModel.Id);
+			if (student is not null)
+			{
+				dbContext.Students.Remove(viewModel);
+				await dbContext.SaveChangesAsync();
+			}
+
+			return RedirectToAction("List", "Students");
+
+		}
+
 	}
+
 }
